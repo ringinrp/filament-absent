@@ -1,0 +1,12 @@
+install laravel shield
+    -pada filament-shield.php
+
+    ubah 'register_role_policy' => [
+        'enabled' => true,
+    ],
+
+    menjadi
+
+    'register_role_policy' => [
+        'enabled' => false,
+    ],
