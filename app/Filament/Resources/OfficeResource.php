@@ -18,7 +18,7 @@ class OfficeResource extends Resource
 {
     protected static ?string $model = Office::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     public static function form(Form $form): Form
     {
@@ -36,7 +36,23 @@ class OfficeResource extends Resource
                         'zoomSnap'            => 0.25,
                         'wheelPxPerZoomLevel' => 60
                     ])
-                    // tiles url (refer to https://www.spatialbias.com/2018/02/qgis-3.0-xyz-tile-layers/)
+                    ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $record) {
+
+                        // Pastikan $record tidak null dan memiliki properti latitude/longitude
+                        if ($record && isset($record->latitude, $record->longitude)) {
+                            $latitude = $record->latitude;
+                            $longitude = $record->longitude;
+
+                            // Pastikan nilai latitude dan longitude tidak kosong
+                            if ($latitude && $longitude) {
+                                $set('location', ['lat' => $latitude, 'lng' => $longitude]);
+                            }
+                        }
+                    })
+                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                        $set('latitude', $state['lat']);
+                        $set('longitude', $state['lng']);
+                    })
                     ->tilesUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
                 Forms\Components\TextInput::make('latitude')
                     ->required()
