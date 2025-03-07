@@ -19,50 +19,65 @@ class OfficeResource extends Resource
     protected static ?string $model = Office::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                OSMMap::make('location')
-                    ->label('Location')
-                    ->showMarker()
-                    ->draggable()
-                    ->extraControl([
-                        'zoomDelta'           => 1,
-                        'zoomSnap'            => 0.25,
-                        'wheelPxPerZoomLevel' => 60
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                                OSMMap::make('location')
+                                    ->label('Location')
+                                    ->showMarker()
+                                    ->draggable()
+                                    ->extraControl([
+                                        'zoomDelta'           => 1,
+                                        'zoomSnap'            => 0.25,
+                                        'wheelPxPerZoomLevel' => 60
+                                    ])
+                                    ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $record) {
+                                        if ($record) {
+                                            $latitude = $record->latitude;
+                                            $longitude = $record->longitude;
+
+                                            if ($latitude && $longitude) {
+                                                $set('location', ['lat' => $latitude, 'lng' => $longitude]);
+                                            }
+                                        }
+                                    })
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        $set('latitude', $state['lat']);
+                                        $set('longitude', $state['lng']);
+                                    })
+                                    ->tilesUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+                                Forms\Components\Group::make()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('latitude')
+                                            ->numeric(),
+                                        Forms\Components\TextInput::make('longitude')
+                                            ->numeric(),
+                                    ])->columns(2)
+
+
+                            ])
+
+                    ]),
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\TextInput::make('radius')
+                                    ->required()
+                                    ->numeric(),
+                            ])
                     ])
-                    ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set, $record) {
 
-                        // Pastikan $record tidak null dan memiliki properti latitude/longitude
-                        if ($record && isset($record->latitude, $record->longitude)) {
-                            $latitude = $record->latitude;
-                            $longitude = $record->longitude;
-
-                            // Pastikan nilai latitude dan longitude tidak kosong
-                            if ($latitude && $longitude) {
-                                $set('location', ['lat' => $latitude, 'lng' => $longitude]);
-                            }
-                        }
-                    })
-                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $set('latitude', $state['lat']);
-                        $set('longitude', $state['lng']);
-                    })
-                    ->tilesUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
-                Forms\Components\TextInput::make('latitude')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('longitude')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('radius')
-                    ->required()
-                    ->numeric(),
             ]);
     }
 
@@ -73,10 +88,8 @@ class OfficeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('latitude')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('longitude')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
